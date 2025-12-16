@@ -40,7 +40,8 @@ jobs:
             protobuf-compiler file fuse libssl-dev \
             libwebkit2gtk-4.1-dev libwebkit2gtk-4.1-0 \
             libsoup2.4-dev libgstreamer-plugins-base1.0-dev \
-            libnotify-dev   # Fixed: required by local_notifier
+            libnotify-dev \   # For local_notifier
+            libayatana-appindicator3-dev   # Fixed: required by system_tray / tray_manager
 
       - name: Cache pub
         uses: actions/cache@v4
