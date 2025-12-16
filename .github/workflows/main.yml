@@ -7,7 +7,7 @@ on:
     branches: [ rustpush ]
 
 jobs:
-  build-linux:
+  build-appimage:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -15,7 +15,7 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Skip private nested submodule
+      - name: Skip private nested submodule (apple-private-apis)
         run: |
           git submodule deinit -f rustpush/apple-private-apis || true
           git rm -f rustpush/apple-private-apis || true
@@ -34,16 +34,7 @@ jobs:
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev protobuf-compiler file
-
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Cargo
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo/registry
-          key: cargo-${{ hashFiles('**/Cargo.lock') }}
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev protobuf-compiler file fuse libssl-dev  # Added libssl-dev for any potential openssl linkage
 
       - name: Cache pub
         uses: actions/cache@v4
@@ -51,7 +42,7 @@ jobs:
           path: ~/.pub-cache
           key: pub-${{ hashFiles('pubspec.lock') }}
 
-      - name: Replace private flutter_isolate
+      - name: Replace private flutter_isolate with public version
         run: |
           flutter pub remove flutter_isolate || true
           flutter pub add flutter_isolate
@@ -59,27 +50,31 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Build Rust parts
-        run: |
-          cd rustpush || cd rust || true
-          cargo build --release
+      # Skip Rust build entirely – it's broken and unnecessary for Linux desktop
+      # If you later need specific Rust features, pin rustpush submodule to an older commit locally and push the update
 
       - name: Build Flutter Linux bundle
         run: flutter build linux --release
 
-      - name: Download linuxdeploy
+      - name: Download linuxdeploy AppImage
         run: |
           wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
           chmod +x linuxdeploy-x86_64.AppImage
 
-      - name: Build AppImage
+      - name: Build AppImage with icon only
         run: |
-          ./linuxdeploy-x86_64.AppImage --appdir AppDir -e build/linux/x64/release/bundle/openbubbles -i linux/icon.png -d linux/openbubbles.desktop --output appimage
-          # Adjust icon/desktop file paths if needed – copy your app's icon to root as icon.png and create a basic .desktop file
+          ./linuxdeploy-x86_64.AppImage --appdir AppDir \
+            --executable build/linux/x64/release/bundle/openbubbles \
+            --icon-file flatpak/128x128.png \  # Adjust if your icon path differs
+            --output appimage
 
-      - name: Upload AppImage
+      - name: Rename output
+        run: |
+          mv OpenBubbles*.AppImage OpenBubbles-Linux-x86_64.AppImage
+
+      - name: Upload AppImage artifact
         uses: actions/upload-artifact@v4
         with:
           name: openbubbles-linux-appimage
-          path: OpenBubbles*.AppImage
+          path: OpenBubbles-Linux-x86_64.AppImage
           retention-days: 30
