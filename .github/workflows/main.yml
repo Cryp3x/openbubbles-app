@@ -41,7 +41,8 @@ jobs:
             libwebkit2gtk-4.1-dev libwebkit2gtk-4.1-0 \
             libsoup-3.0-dev libgstreamer-plugins-base1.0-dev \
             libnotify-dev \
-            libayatana-appindicator3-dev
+            libayatana-appindicator3-dev \
+            libmpv-dev   # Fixed: required by media_kit_video / media_kit_native_event_loop
 
       - name: Cache pub
         uses: actions/cache@v4
